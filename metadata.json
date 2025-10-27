@@ -1,0 +1,5 @@
+{
+  "name": "Interactive Chalkboard Curriculum",
+  "description": "An interactive digital chalkboard application designed for teaching Algebra. It features drawing tools, a curriculum browser, and exercises displayed directly on the board for an immersive learning experience.",
+  "requestFramePermissions": []
+}
