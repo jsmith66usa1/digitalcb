@@ -8,11 +8,14 @@ import { useChalkboard } from './hooks/useChalkboard';
 // Helper to get curriculum from URL parameter or return a default
 const getInitialCurriculumData = () => {
     const params = new URLSearchParams(window.location.search);
-    const curriculumKey = params.get('curriculum') as keyof typeof availableCurriculums;
-    // Default to 'algebra' if the key from the URL is invalid or not present
-    if (curriculumKey && availableCurriculums[curriculumKey]) {
-        return availableCurriculums[curriculumKey].data;
+    const curriculumKey = params.get('curriculum')?.toLowerCase(); // Convert to lowercase for case-insensitivity
+
+    // Explicitly check for the geometry key, otherwise default to algebra.
+    if (curriculumKey === 'geometry') {
+        return availableCurriculums.geometry.data;
     }
+    
+    // Default to 'algebra' for any other key or if the param is not present
     return availableCurriculums.algebra.data;
 };
 
@@ -21,16 +24,34 @@ const App: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [mode, setMode] = useState<DrawingMode>('draw');
     const [isGridActive, setIsGridActive] = useState<boolean>(false);
-    const [curriculumContent, setCurriculumContent] = useState<CurriculumContent | null>(null);
     const [messageBoxState, setMessageBoxState] = useState<MessageBoxState>({ isVisible: false, message: '', onOk: () => {} });
     
     // Load curriculum based on URL param ONCE on initial render.
     const [curriculumData] = useState<Session[]>(getInitialCurriculumData());
 
-    const { clearDrawing, addTextToCanvas } = useChalkboard(canvasRef, mode, isGridActive, curriculumContent);
-
+    // Initialize with a blank state
     const [selectedSessionIndex, setSelectedSessionIndex] = useState<string>('0');
     const [selectedTopicValue, setSelectedTopicValue] = useState<string>('0-0');
+    const [curriculumContent, setCurriculumContent] = useState<CurriculumContent | null>(null);
+
+    const { clearDrawing, addTextToCanvas } = useChalkboard(canvasRef, mode, isGridActive, curriculumContent);
+
+    // This effect runs once on mount to reliably set the initial lesson
+    useEffect(() => {
+        if (curriculumData && curriculumData.length > 0 && curriculumData[0].topics.length > 0) {
+            const firstSessionIndex = '1';
+            const firstTopicIndex = '0';
+            const firstTopic = curriculumData[0].topics[0];
+
+            setSelectedSessionIndex(firstSessionIndex);
+            setSelectedTopicValue(`${firstSessionIndex}-${firstTopicIndex}`);
+            setCurriculumContent({
+                type: 'examples',
+                title: `${firstTopic.name} - Examples`,
+                content: firstTopic,
+            });
+        }
+    }, [curriculumData]); // This dependency is stable and ensures the effect runs once after the initial data is loaded.
 
     const showMessageBox = useCallback((message: string, onOk?: () => void) => {
         setMessageBoxState({
